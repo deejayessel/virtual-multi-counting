@@ -1,2 +1,2 @@
 # virtual-multi-counting
-Counts (naively) the number of valid choices of crossing (virtual or classical) for a multi-crossing knot of n crossings
+Counts (naively) the number of valid choices of virtual multi-crossings for an n-crossing in a projection of a knot
