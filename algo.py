@@ -4,8 +4,18 @@ import numpy as np
 import itertools as it
 import matplotlib.pyplot as plt
 from random import choice
+from copy import deepcopy
+from mapping import mapping
+
+"""
+Contains the functions necessary to run Reuben's algorithm
+"""
 
 def makeLines(n):
+    """
+    Set up the n-crossing as a set of evenly-spread lines tangent to 
+    the first quadrang of the unit circle
+    """
     k = np.pi / (2*n) 
     def strand(i):
         theta = i*k
@@ -20,14 +30,15 @@ def _intersections(a, b, c):
 
 def makeGraph(lines):
     """ 
-    For each 3-pair of the n-lines in `lines`, 
-      take the intersections between them,
-      use to make a triangle node,
-      connect by common vertices
+    Makes the graph representing the virtual n-crossing.
+
+    For each 3-pair of lines, take their intersections
+    and add these as triangle nodes to the graph.  Connect nodes
+    sharing intersection points by edges labeled by the shared point.
     """
     g = nx.Graph()
-    for (a,b,c) in it.combinations(lines, 3):
-        r,s,t = _intersections(a,b,c)
+    for (a,b,c) in it.combinations(lines, 3): 
+        r,s,t = _intersections(a,b,c) 
         tri1 = Triangle(r,s,t)
         g.add_node(tri1)
         for tri2 in g.nodes:
@@ -37,6 +48,7 @@ def makeGraph(lines):
     return g
 
 def drawGraph(g):
+    """ Draws the input graph g """
     #pos = nx.spring_layout(g)
     pos = { tri : tri.centroid.pos for tri in g.nodes }
     nx.draw(g, pos, with_labels = True)
@@ -44,37 +56,6 @@ def drawGraph(g):
     #nx.draw_networkx_edge_labels(g, pos, edge_labels=labels)
     plt.show()
 
-mapping = {
-    'CVV': ['CVV'],
-    '_V_': ['VVC', 'VVV', 'CVV'],
-    'V__': ['VVV','VCV','VVC'],
-    'CV_': ['CVV'],
-    '__V': ['CVV','VCV','VVV'],
-    'C_V': ['CVV'],
-    'C__': ['CVV','CCC'],
-    'VVV': ['VVV'],
-    '__C': ['VVC','CCC'],
-    'VCV': ['VCV'],
-    '_CC': ['CCC'],
-    '___': ['CCC','CVV','VCV','VVC','VVV'],
-    'VVC': ['VVC'],
-    'VV_': ['VVV','VVC'],
-    '_CV': ['VCV'],
-    'CVC': [],
-    'CCV': [],
-    'V_C': ['VVC'],
-    'CCC': ['CCC'],
-    '_VV': ['VVV','CVV'],
-    'VCC': [],
-    'C_C': ['CCC'],
-    '_C_': ['CCC','VCV'],
-    'VC_': ['VCV'],
-    'V_V': ['VVV','VCV'],
-    'CC_': ['CCC'],
-    '_VC': ['VVC']
-}
-
-from copy import deepcopy
 
 def extend(coloring, tri):
     """
@@ -95,16 +76,15 @@ def extend(coloring, tri):
         output.append(deepcopy(newcoloring))
     return output
     
-def colorGraph(g, root):
+def colorGraph(g):
     """
     Come up with a set of valid colorations of the graph, i.e.,
     a set of valid choices of virtual and classical crossings 
     for the n-crossing
     """
-    # coloring map collection: List[{Point -> Color}]
-    colorings = []
+    root = list(g.nodes)[0]
     blankcoloring = {v:'_' for tri in g.nodes for v in tri.vertices}
-    colorings.append(blankcoloring)
+    colorings = [blankcoloring] # coloring map collection: List[{Point -> Color}]
 
     edges = nx.bfs_edges(g, root)
     nodes = [root] + [v for u,v in edges]
@@ -114,11 +94,38 @@ def colorGraph(g, root):
                      for newc in extend(oldc, tri)]
     return colorings
 
-def strColoring(colorings):
-    return ", ".join([str(k)+str(v) for c in colorings for (k,v) in c.items()])
+def strColoring(coloring):
+    return "".join([str(v) for (k,v) in coloring.items()])
+
+def strList(cs):
+    xs = [strColoring(c) for c in cs]
+    ys = [(x.count('C'),x) for x in xs]
+    return [b for a,b in sorted(ys)]
+
+def isPerm(a, b):
+    """ Checks if a is a permutation of b """
+    return a in b+b
+
+def filterPerms(cs):
+    def inserted(l, x):
+        for elt in l:
+            if isPerm(elt, x):
+                return l
+        return l+[x]
+
+    xs = strList(cs)
+    l = []
+    for x in xs:
+        l = inserted(l, x)
+    return l
 
 if __name__ == '__main__':
-    for i in range(3,20):
+    for i in range(3, 8):
         g = makeGraph(makeLines(i))
-        root = list(g.nodes)[0]
-        print(i, len(g.nodes))
+        cs = colorGraph(g)
+        print(i, len(cs))
+
+    # for i in range(3,20):
+    #     g = makeGraph(makeLines(i))
+    #     root = list(g.nodes)[0]
+    #     print(i, len(colorGraph(g, root)))

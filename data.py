@@ -1,4 +1,9 @@
 import math
+from decimal import *
+
+"""
+Contains data structures necessary to run Reuben's algorithm
+"""
 
 class Triangle:
     """ Contains three vertices """
@@ -8,7 +13,7 @@ class Triangle:
         self.c = c
 
     def contains(self, p):
-        return a == p or b == p or c == p
+        return p in [a, b, c]
 
     @property
     def vertices(self):
@@ -22,8 +27,8 @@ class Triangle:
     def intersection(self, other):
         """ 
         Checks if this triangle intersects another triangle.
-        If there is an intersection, returns the point of intersection.
-        If there are no intersections, returns an empty list.
+        If there is an intersection, returns the first discovered point of intersection.
+        If there are no intersections, returns None.
         """
         for u in self.vertices:
             for v in other.vertices:
@@ -34,7 +39,6 @@ class Triangle:
     def intersects(self, other):
         return self.intersection(other) is not None
 
-    # need a better hashing function
     def __hash__(self):
         return self.vertices.__hash__()
 
@@ -42,14 +46,17 @@ class Triangle:
         return "({},{},{})".format(*self.vertices)
 
 class Line:
+    """ 
+    Represents a line in slope-intercept form (y = mx + b)
+    """
 
     def __init__(self, m, b):
-        self.m = m
-        self.b = b
+        self.m = Decimal(m).quantize(Decimal('.0001'))
+        self.b = Decimal(b).quantize(Decimal('.0001'))
     
     def intersect(self, other):
-        # returns intersection point of self with other
-        x = (other.b - self.b)/(self.m - other.m)
+        """ Returns intersection point of self with other """
+        x = Decimal(other.b - self.b)/Decimal(self.m - other.m)
         y = self.m * x + self.b
         return Point(x, y)
 
@@ -62,15 +69,14 @@ class Line:
     def __eq__(self, other):
         return self.m == other.m and self.b == other.b
 
-    # need a better hashing function
     def __hash__(self):
-        return self.m.__hash__() + self.b.__hash__()
+        return (self.m, self.b).__hash__()
 
 class Point:
 
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.x = Decimal(x).quantize(Decimal('.0001'))
+        self.y = Decimal(y).quantize(Decimal('.0001'))
         
     @property
     def pos(self):
@@ -79,10 +85,10 @@ class Point:
     def dist(self, other):
         (x1, y1) = self.pos
         (x2, y2) = other.pos
-        return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+        return Decimal((x1 - x2)**2 + (y1 - y2)**2).sqrt()
 
-    def __eq__(self, other):
-        return self.dist(other) <= 0.00001 #TODO
+    def __eq__(self, other): #FIX
+        return 0 <= self.dist(other) <= 0.0001
 
     def __hash__(self):
         return self.pos.__hash__()
@@ -91,5 +97,29 @@ class Point:
         return "({:4.2f},{:4.2f})".format(self.x, self.y)
 
 
+# Testing
 if __name__ == '__main__':
-    pass
+
+    import itertools as it
+    import numpy as np
+
+    n = 5
+    k = np.pi / (2*n) 
+    def strand(i):
+        theta = i*k
+        return Line(m = -1/np.tan(theta),
+                    b = 1/np.sin(theta))
+    ls = [strand(i) for i in range(1,n+1)]
+
+    def _intersect(a,b,c):
+        return (a.intersect(b), b.intersect(c), c.intersect(a))
+
+    ps = [p
+          for a,b,c in it.combinations(ls, 3)
+          for p in _intersect(a,b,c)]
+
+    for a,b in it.combinations(ps, 2):
+        if a == b and a.__hash__() != b.__hash__():
+            print(a.pos, b.pos)
+            
+
