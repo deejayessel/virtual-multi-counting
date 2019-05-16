@@ -47,6 +47,10 @@ def makeGraph(lines):
                 g.add_edge(tri1, tri2, label=p )
     return g
 
+def makeCrossingGraph(n):
+    """ Makes a graph representing an n-crossing """
+    return makeGraph(makeLines(n))
+
 def drawGraph(g):
     """ Draws the input graph g """
     #pos = nx.spring_layout(g)
@@ -88,10 +92,18 @@ def colorGraph(g):
 
     edges = nx.bfs_edges(g, root)
     nodes = [root] + [v for u,v in edges]
+    i = 1
+    prevlen = 0
+    nlen = len(nodes)
     for tri in nodes: #for each triangle-node
+        print('coloring stage {}/{}...'.format(i, nlen))
         colorings = [newc
                      for oldc in colorings
                      for newc in extend(oldc, tri)]
+        l = len(colorings)
+        print('coloring stage {}/{} complete with length {}, delta {}'.format(i, nlen, l, l - prevlen))
+        prevlen = l
+        i+=1
     return colorings
 
 def strColoring(coloring):
@@ -120,10 +132,14 @@ def filterPerms(cs):
     return l
 
 if __name__ == '__main__':
-    for i in range(3, 8):
-        g = makeGraph(makeLines(i))
+    for i in range(3, 10):
+        print('making {}-crossing graph...'.format(i))
+        g = makeCrossingGraph(i)
+        print('done')
+        print('coloring {}-crossing...'.format(i))
         cs = colorGraph(g)
-        print(i, len(cs))
+        print('done coloring')
+        print('RESULT', i, len(cs))
 
     # for i in range(3,20):
     #     g = makeGraph(makeLines(i))
